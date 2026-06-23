@@ -1,0 +1,15 @@
+{
+  "name": "overeact",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "scripts": {
+    "dev": "bun build src/app.ts --outfile dist/bundle.js --watch"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
