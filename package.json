@@ -1,13 +1,17 @@
 {
   "name": "overeact",
-  "module": "index.ts",
+  "version": "1.0.0",
+  "main": "dist/index.js",
   "type": "module",
-  "private": true,
+  "bin": {
+    "overeact": "./cli.ts"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
   "scripts": {
-    "dev": "bun build src/app.tsx --outfile dist/bundle.js --watch"
+    "dev": "bun build src/app.tsx --outfile dist/bundle.js --watch",
+    "build:lib": "bun build src/index.ts --outdir dist"
   },
   "peerDependencies": {
     "typescript": "^5"

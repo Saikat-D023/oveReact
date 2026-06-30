@@ -29,3 +29,19 @@ export function useState(initialValue: any) {
 
   return [hooks[currentIndex], setState];
 }
+
+export function useEffect(effect: () => void, deps?: any[]) {
+  const hasNoDeps = !deps;
+  const oldDeps = hooks[hookIndex];
+  const depsChanged = oldDeps
+    ? !deps!.every((dep, i) => dep === oldDeps[i])
+    : true;
+
+  if (hasNoDeps || depsChanged) {
+    hooks[hookIndex] = deps;
+    // Run the effect after the current render cycle
+    setTimeout(effect, 0);
+  }
+  
+  hookIndex++;
+}

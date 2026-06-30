@@ -1,24 +1,30 @@
-import { renderNode } from './vdom.js';
+import { renderNode, updateElement } from './vdom.js';
 import { resetHookIndex } from './hooks.js';
 
 let rootContainer: HTMLElement | null = null;
 let rootComponent: any = null;
+let currentVDom: any = null;
 
 export function renderApp(Component: any, container: HTMLElement) {
   rootContainer = container;
   rootComponent = Component;
   
-  // Wipe the existing DOM
-  container.innerHTML = '';
-  
   // Reset our hooks
   resetHookIndex();
   
   // Run the component function to get the Virtual DOM
-  const vdom = Component();
+  const newVDom = Component();
   
-  // Convert VDOM to real DOM and attach it
-  container.appendChild(renderNode(vdom));
+  if (currentVDom) {
+    // Subsequent renders: Diff the VDOM
+    updateElement(container, newVDom, currentVDom, 0);
+  } else {
+    // First render: wipe and attach
+    container.innerHTML = '';
+    container.appendChild(renderNode(newVDom));
+  }
+  
+  currentVDom = newVDom;
 }
 
 // A helper to trigger a full re-render
