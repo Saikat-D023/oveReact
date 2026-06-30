@@ -7,7 +7,7 @@
     "@types/bun": "latest"
   },
   "scripts": {
-    "dev": "bun build src/app.ts --outfile dist/bundle.js --watch"
+    "dev": "bun build src/app.tsx --outfile dist/bundle.js --watch"
   },
   "peerDependencies": {
     "typescript": "^5"

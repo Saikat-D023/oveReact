@@ -17,14 +17,17 @@ export function renderNode(vdom: any): any {
   // 2. Create the physical DOM element
   const domElement = document.createElement(vdom.type);
 
-  // 3. Attach properties (like id, class, onclick)
+  const isEvent = (key: string) => key.startsWith("on");
+  const getEventName = (key: string) => key.substring(2).toLowerCase();
+
+  // 3. Attach properties (like id, className, onClick)
   for (const [key, value] of Object.entries(vdom.props)) {
-    if (key.startsWith('on') && typeof value === 'function') {
-      // It's an event listener (e.g., onclick -> click)
-      const eventName = key.substring(2).toLowerCase();
-      domElement.addEventListener(eventName, value as EventListenerOrEventListenerObject);
+    if (isEvent(key) && typeof value === "function") {
+      domElement.addEventListener(getEventName(key), value as EventListener);
     } else {
-      domElement.setAttribute(key, value as string);
+      // Map React's 'className' back to HTML 'class'
+      const attributeName = key === "className" ? "class" : key;
+      domElement.setAttribute(attributeName, String(value));
     }
   }
 
