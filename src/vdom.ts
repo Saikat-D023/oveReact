@@ -1,12 +1,16 @@
 // 1. define the structure of virtual dom
+
+export type VDomElement = VDomNode | string | number | boolean | null | undefined;
+
 export interface VDomNode {
   type: string,
   props: Record<string, any>,
-  children: (VDomNode | string | number)[]
+  children: VDomElement[]
 }
 
 // 2. create a virtual dom element
 export function createElement(type: string, props: Record<string, any> = {}, ...children: any[]): VDomNode {
+  //returns an object , that contains: type, props and children
   return {
     type,
     props: props || {},
@@ -19,8 +23,13 @@ export function createElement(type: string, props: Record<string, any> = {}, ...
 const isEvent = (key: string) => key.startsWith("on");
 const getEventName = (key: string) => key.substring(2).toLowerCase();
 
-// 3. render a vdom object into a real dom node (formerly createDom)
-export function renderNode(vdom: any): Node {
+// 3. render a vdom object into a real dom node 
+export function renderNode(vdom: VDomElement): Node {
+  // Handle empty or falsy values (like null, undefined, booleans)
+  if (vdom == null || typeof vdom === 'boolean') {
+    return document.createTextNode('');
+  }
+
   // Handle raw text or numbers
   if (typeof vdom === 'string' || typeof vdom === 'number') {
     return document.createTextNode(String(vdom));
@@ -43,7 +52,7 @@ export function renderNode(vdom: any): Node {
 
   // Recursively render and append all children
   if (vdom.children) {
-    vdom.children.forEach((child: any) => {
+    vdom.children.forEach((child: VDomElement) => {
       domElement.appendChild(renderNode(child));
     });
   }
@@ -57,9 +66,6 @@ export function updateProps(dom: HTMLElement, newProps: Record<string, any> = {}
   for (const key of Object.keys(oldProps)) {
     if (!(key in newProps)) {
       if (isEvent(key)) {
-        // Removing event listeners requires the original function reference, which can be tricky.
-        // For a simple implementation, we might skip full event removal, or just nullify if it was an attribute.
-        // A true React clone would use an event delegation system. 
         dom.removeEventListener(getEventName(key), oldProps[key]);
       } else {
         const attributeName = key === "className" ? "class" : key;
@@ -72,7 +78,7 @@ export function updateProps(dom: HTMLElement, newProps: Record<string, any> = {}
   for (const key of Object.keys(newProps)) {
     const newValue = newProps[key];
     const oldValue = oldProps[key];
-    
+
     if (newValue !== oldValue) {
       if (isEvent(key)) {
         // If it's a new event or changed event, add the new one. 
@@ -90,33 +96,39 @@ export function updateProps(dom: HTMLElement, newProps: Record<string, any> = {}
 }
 
 // 5. Diffing and updating the DOM
-export function updateElement(parent: Node, newNode: any, oldNode: any, index: number = 0) {
+export function updateElement(parent: Node, newNode: VDomElement, oldNode: VDomElement, index: number = 0) {
   if (!oldNode) {
-    // Node was added
+    // Node was added, previously there wasnt any node present
     parent.appendChild(renderNode(newNode));
   } else if (!newNode) {
     // Node was removed
     if (parent.childNodes[index]) {
       parent.removeChild(parent.childNodes[index]);
     }
-  } else if (typeof newNode === 'string' || typeof newNode === 'number' || typeof oldNode === 'string' || typeof oldNode === 'number') {
-    // Text nodes
+  } else if (
+    typeof newNode === 'string' || typeof newNode === 'number' || typeof newNode === 'boolean' || 
+    typeof oldNode === 'string' || typeof oldNode === 'number' || typeof oldNode === 'boolean'
+  ) {
+    // Primitive nodes (text or boolean)
     if (newNode !== oldNode) {
-      parent.replaceChild(renderNode(newNode), parent.childNodes[index]);
+      parent.replaceChild(renderNode(newNode), parent.childNodes[index] as Node);
     }
-  } else if (newNode.type !== oldNode.type) {
+  } else if ((newNode as VDomNode).type !== (oldNode as VDomNode).type) {
     // Node type changed entirely (e.g., div -> span)
-    parent.replaceChild(renderNode(newNode), parent.childNodes[index]);
+    parent.replaceChild(renderNode(newNode), parent.childNodes[index] as Node);
   } else {
     // Node is the same type, update props and diff children
     const domElement = parent.childNodes[index] as HTMLElement;
-    updateProps(domElement, newNode.props, oldNode.props);
+    const newVNode = newNode as VDomNode;
+    const oldVNode = oldNode as VDomNode;
     
-    const newLength = newNode.children ? newNode.children.length : 0;
-    const oldLength = oldNode.children ? oldNode.children.length : 0;
-    
+    updateProps(domElement, newVNode.props, oldVNode.props);
+
+    const newLength = newVNode.children ? newVNode.children.length : 0;
+    const oldLength = oldVNode.children ? oldVNode.children.length : 0;
+
     for (let i = 0; i < newLength || i < oldLength; i++) {
-      updateElement(domElement, newNode.children[i], oldNode.children[i], i);
+      updateElement(domElement, newVNode.children[i], oldVNode.children[i], i);
     }
   }
 }
