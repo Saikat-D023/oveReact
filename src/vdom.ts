@@ -9,7 +9,7 @@ export interface VDomNode {
 }
 
 // 2. create a virtual dom element
-export function createElement(type: string, props: Record<string, any> = {}, ...children: any[]): VDomNode {
+export function createElement(type: string, props: Record<string, any> = {}, ...children: VDomElement[]): VDomNode {
   //returns an object , that contains: type, props and children
   return {
     type,
@@ -38,10 +38,13 @@ export function renderNode(vdom: VDomElement): Node {
   // Create the physical DOM element
   const domElement = document.createElement(vdom.type);
 
-  // Attach properties (like id, className, onClick)
+  // Attach properties (like id, className, onClick, ref)
   if (vdom.props) {
     for (const [key, value] of Object.entries(vdom.props)) {
-      if (isEvent(key) && typeof value === "function") {
+      if (key === 'ref' && value && typeof value === 'object') {
+        // Handle refs: assign the physical DOM node to ref.current!
+        value.current = domElement;
+      } else if (isEvent(key) && typeof value === "function") {
         domElement.addEventListener(getEventName(key), value as EventListener);
       } else {
         const attributeName = key === "className" ? "class" : key;
@@ -97,16 +100,16 @@ export function updateProps(dom: HTMLElement, newProps: Record<string, any> = {}
 
 // 5. Diffing and updating the DOM
 export function updateElement(parent: Node, newNode: VDomElement, oldNode: VDomElement, index: number = 0) {
-  if (!oldNode) {
+  if (oldNode === undefined || oldNode === null) {
     // Node was added, previously there wasnt any node present
     parent.appendChild(renderNode(newNode));
-  } else if (!newNode) {
+  } else if (newNode === undefined || newNode === null) {
     // Node was removed
     if (parent.childNodes[index]) {
       parent.removeChild(parent.childNodes[index]);
     }
   } else if (
-    typeof newNode === 'string' || typeof newNode === 'number' || typeof newNode === 'boolean' || 
+    typeof newNode === 'string' || typeof newNode === 'number' || typeof newNode === 'boolean' ||
     typeof oldNode === 'string' || typeof oldNode === 'number' || typeof oldNode === 'boolean'
   ) {
     // Primitive nodes (text or boolean)
@@ -121,7 +124,7 @@ export function updateElement(parent: Node, newNode: VDomElement, oldNode: VDomE
     const domElement = parent.childNodes[index] as HTMLElement;
     const newVNode = newNode as VDomNode;
     const oldVNode = oldNode as VDomNode;
-    
+
     updateProps(domElement, newVNode.props, oldVNode.props);
 
     const newLength = newVNode.children ? newVNode.children.length : 0;

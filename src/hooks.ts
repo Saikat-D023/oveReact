@@ -8,7 +8,7 @@ export function resetHookIndex() {
   hookIndex = 0;
 }
 
-export function useState(initialValue: any) {
+export function useState(initialValue: number | string | boolean) {
   // Capture the current index for this specific hook call
   const currentIndex = hookIndex;
 
@@ -18,9 +18,9 @@ export function useState(initialValue: any) {
   }
 
   // The setter function
-  const setState = (newValue: any) => {
+  const setState = (newValue: number | string | boolean) => {
     hooks[currentIndex] = newValue;
-    // THE MAGIC: Force the whole app to redraw!
+    // Force the whole app to redraw!
     triggerRerender();
   };
 
@@ -30,18 +30,48 @@ export function useState(initialValue: any) {
   return [hooks[currentIndex], setState];
 }
 
-export function useEffect(effect: () => void, deps?: any[]) {
-  const hasNoDeps = !deps;
+export function useEffect(effect: () => void, deps?: (number | string | boolean)[]) {
   const oldDeps = hooks[hookIndex];
-  const depsChanged = oldDeps
-    ? !deps!.every((dep, i) => dep === oldDeps[i])
-    : true;
+  let hasChanged = false;
 
-  if (hasNoDeps || depsChanged) {
-    hooks[hookIndex] = deps;
-    // Run the effect after the current render cycle
-    setTimeout(effect, 0);
+  if (!deps) {
+    // Case 1: No dependency array provided at all (e.g. useEffect(() => {...}))
+    // It should run on every single render.
+    hasChanged = true;
+  } else if (!oldDeps) {
+    // Case 2: This is the very first render.
+    // oldDeps doesn't exist yet, so we definitely need to run the effect.
+    hasChanged = true;
+  } else {
+    // Case 3: Compare the new dependencies against the old dependencies one by one.
+    for (let i = 0; i < deps.length; i++) {
+      if (deps[i] !== oldDeps[i]) {
+        hasChanged = true;
+        break; // Stop checking as soon as we find one difference
+      }
+    }
   }
-  
+
+  // If anything changed (or if it's the first render), run the effect!
+  if (hasChanged) {
+    hooks[hookIndex] = deps; // Save the new deps for next time
+    setTimeout(effect, 0);   // Schedule the effect to run
+  }
+
+  // Move the pointer for the next hook
   hookIndex++;
+}
+
+export function useRef<T>(initialValue: T) {
+  const currentIndex = hookIndex;
+
+  // If this is the first time, initialize it as an object with a 'current' object
+  if (hooks[currentIndex] === undefined) {
+    hooks[currentIndex] = { current: initialValue };
+  }
+
+  // Move the pointer for the next hook
+  hookIndex++;
+
+  return hooks[currentIndex];
 }

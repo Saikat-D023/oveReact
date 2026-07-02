@@ -2,7 +2,7 @@ import { renderNode, updateElement, type VDomElement } from './vdom.js';
 import { resetHookIndex } from './hooks.js';
 
 let rootContainer: HTMLElement | null = null;           //where is the app -> root
-let rootComponent: (() => VDomElement) | null = null;   //what is the app
+let rootComponent: (() => VDomElement) | null = null;   //what is the app, e.g Counter
 let currentVDom: VDomElement | null = null;             //what did the app look like last time
 
 export function renderApp(Component: () => VDomElement, container: HTMLElement) {
